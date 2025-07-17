@@ -1,0 +1,61 @@
+import streamlit as st
+from googletrans import Translator
+import speech_recognition as sr
+from gtts import gTTS
+import os
+import tempfile
+
+# Initialize translator
+translator = Translator()
+
+st.set_page_config(page_title="Arabic-English Translator", layout="centered")
+st.title("🗣️ Arabic ↔ English Voice & Text Translator")
+
+# Text input
+st.subheader("Type your message")
+text_input = st.text_area("Enter Arabic or English text below:")
+
+# Translate button
+if st.button("Translate Text"):
+    if text_input:
+        detected_lang = translator.detect(text_input).lang
+        target_lang = "en" if detected_lang == "ar" else "ar"
+        translated = translator.translate(text_input, dest=target_lang)
+        st.success(f"Translated ({detected_lang} → {target_lang}):")
+        st.write(translated.text)
+
+        # Text-to-speech
+        tts = gTTS(text=translated.text, lang=target_lang)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
+            tts.save(fp.name)
+            st.audio(fp.name, format="audio/mp3")
+    else:
+        st.warning("Please enter some text to translate.")
+
+# Voice input
+st.subheader("🎤 Speak your message")
+if st.button("Start Voice Translation"):
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        st.info("Listening... Please speak now.")
+        try:
+            audio = recognizer.listen(source, timeout=5)
+            spoken_text = recognizer.recognize_google(audio)
+            st.write(f"You said: {spoken_text}")
+
+            detected_lang = translator.detect(spoken_text).lang
+            target_lang = "en" if detected_lang == "ar" else "ar"
+            translated = translator.translate(spoken_text, dest=target_lang)
+            st.success(f"Translated ({detected_lang} → {target_lang}):")
+            st.write(translated.text)
+
+            # Text-to-speech
+            tts = gTTS(text=translated.text, lang=target_lang)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
+                tts.save(fp.name)
+                st.audio(fp.name, format="audio/mp3")
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
+
+st.markdown("---")
+st.caption("Built for Arabic ↔ English translation with voice and text support.")
